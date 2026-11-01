@@ -43,6 +43,7 @@ def actual_files(folder):
 def verified_refresh():
     expected = expected_files()
     before = MANIFEST.read_bytes()
+    old_manifest = json.loads(before)
     spec = importlib.util.spec_from_file_location("verified_binary_downloader", DOWNLOADER)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -50,13 +51,15 @@ def verified_refresh():
     with tempfile.TemporaryDirectory(prefix="verified-binaries-") as stage_name:
         stage = Path(stage_name)
         downloader = module.BinaryDownloader(base_path=stage)
-        downloader.run(only=TOOLS)
-
-        # The existing downloader writes a manifest in the workspace; refuse
-        # unexpected changes rather than silently publishing new paths.
-        if MANIFEST.read_bytes() != before:
+        try:
+            downloader.run(only=TOOLS)
+        finally:
+            # The downloader rewrites manifest formatting even without any
+            # path change; preserve its original bytes after staging.
+            refreshed_manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
             MANIFEST.write_bytes(before)
-            raise ValueError("Downloader modified the pinned 51-path manifest")
+        if refreshed_manifest != old_manifest:
+            raise ValueError("Downloader changed the pinned 51-path manifest")
 
         actual = actual_files(stage)
         if actual != expected:
