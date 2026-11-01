@@ -34,3 +34,5 @@ jobs:
       - name: Verify all tracked executables from pinned upstream bytes
         if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
         run: python security/audit_all_binaries.py --enforce
+      - name: Verify immutable SHA-256 snapshot of all 51 executables
+        run: python security/check_binary_inventory.py --check
