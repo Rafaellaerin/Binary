@@ -153,11 +153,22 @@ jobs:
           DENO_VERSION: ${{ needs.check.outputs.deno_latest }}
         run: python .github/workflows/scripts/download_binaries.py --only "${{ steps.which.outputs.only }}"
 
+      - name: Check verified source bytes and refresh the full SHA-256 inventory
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VELORA_GITHUB_TOKEN: ${{ secrets.VELORA_RELEASES_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python security/audit_snapshot.py --strict
+          python security/audit_all_binaries.py --enforce
+          python security/check_binary_inventory.py --write
+          python security/check_binary_inventory.py --check
+
       - name: Commit & push
         run: |
           set -euo pipefail
 
-          if [ -z "$(git status --porcelain binaries binary_paths.json)" ]; then
+          if [ -z "$(git status --porcelain binaries binary_paths.json security/SHA256SUMS.txt)" ]; then
             echo "No changes — binaries already up to date."
             exit 0
           fi
@@ -166,7 +177,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git lfs install
-          git add .gitattributes binaries binary_paths.json
+          git add .gitattributes binaries binary_paths.json security/SHA256SUMS.txt
 
           msg="chore(binaries): weekly update"
           [ "${{ needs.check.outputs.ffmpeg_changed }}" = "true" ] && msg="${msg}
