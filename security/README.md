@@ -4,7 +4,7 @@ This fork deliberately treats every binary as untrusted until the *downloaded pa
 
 ## What is protected
 
-- `security/trusted_source_hashes.json` contains 33 exact HTTPS release-asset URL -> SHA-256 pins for immutable versioned releases, including newly reviewed yt-dlp 2026.10.21, Deno v2.9.8 and MKVToolNix 103.0 published assets checked on 2026-10-26.
+- `security/trusted_source_hashes.json` contains 39 exact HTTPS release-asset URL -> SHA-256 pins for immutable versioned releases, including newly reviewed yt-dlp 2026.10.21, Deno v2.9.8 and MKVToolNix 103.0 published assets checked on 2026-10-26.
 - `.github/workflows/scripts/download_binaries.py` hashes each streamed payload against its pin or the publisher digest before it can replace an existing file. A missing digest, insecure URL, oversized response, failed download, or hash mismatch aborts publication without overwriting the previous binary.
 - Downloaded Velora/Flux executables are **never run** as part of source validation. Release version strings are not an integrity check.
 - Tests in `security/test_source_integrity.py` exercise expected success, changed payloads, missing pins, and HTTP rejection.
@@ -36,3 +36,13 @@ To approve a new upstream release, review the vendor's announcement, signatures/
 - [Binary commit](https://github.com/Rafaellaerin/Binary/commit/b7063f2fe56e6ebf4303c4ef5560b64f73b2d210) updated seven yt-dlp executables (2026.08.19 -> 2026.10.21) and six Windows MKVToolNix executables (100.0 -> 103.0); Deno v2.9.8 was re-verified and unchanged.
 - The downloader reads `binaries/*.version` when no explicit environment override is given. This prevents future manual refresh workflows from downgrading to stale script defaults.
 - The one-shot workflow for this refresh was removed on completion. The existing weekly/manual updater workflows remain.
+
+## Verified complete refresh on 2026-11-01
+
+- [Successful full publisher refresh and audit](https://github.com/Rafaellaerin/Binary/actions/runs/41352528070) staged all 51 paths separately, refused missing assets, required publisher SHA-256 digests, and checked OS/CPU headers before copying binaries to the working tree.
+- [Verified binary snapshot commit](https://github.com/Rafaellaerin/Binary/commit/c4350f3a2bd3ef00bc0ac7dd0a27456d3da4dc90) changed the 7 yt-dlp executables to immutable upstream release 2026.10.26 and refreshed 8 FFmpeg/FFprobe executables from the BtbN distribution. The other 36 executables were obtained from their configured upstream sources and were byte-identical to the already committed copies.
+- `security/SHA256SUMS.txt` is a machine-checkable SHA-256 snapshot of all 51 individual executables (including Git LFS content). Run `git lfs pull` then `python security/check_binary_inventory.py --check` to verify local files.
+- The workflow passed both `security/audit_snapshot.py --strict` and `security/audit_all_binaries.py --enforce` before publishing. It compared all 25 binaries from immutable/versioned releases to freshly extracted, digest-verified publisher packages; the 26 rolling-source binaries were checked against publisher digests at download time and separately checked for file format/architecture.
+- Weekly and manual refresh workflows regenerate `security/SHA256SUMS.txt` on binary changes. The CI gate rejects a changed binary whose published inventory was not updated.
+
+**Provenance limitation:** BtbN is a third-party FFmpeg build distributor; its digest cannot establish that a build was made by the FFmpeg core project. Publisher digests are not independent cryptographic attestations, especially for moving tags such as BtbN `latest`, Flux `Init`, and Velora `init`. No SHA-256 check alone can prove absence of malware.
