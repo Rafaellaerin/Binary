@@ -19,6 +19,8 @@ jobs:
     name: Verify all publisher assets before replacing any executable
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: .
     timeout-minutes: 110
     steps:
       - name: Checkout repository and actual Git LFS binaries
