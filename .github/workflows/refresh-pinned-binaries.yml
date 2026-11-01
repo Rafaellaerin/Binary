@@ -92,6 +92,13 @@ jobs:
           python -m py_compile security/audit_all_binaries.py
           python -m unittest discover -s security -p "test_*.py" -v
 
+      - name: Record and validate individual SHA-256 checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          python security/check_binary_inventory.py --write
+          python security/check_binary_inventory.py --check
+
       - name: Commit verified binaries to the selected branch
         shell: bash
         run: |
@@ -99,7 +106,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git lfs install --local
-          git add .gitattributes binaries binary_paths.json
+          git add .gitattributes binaries binary_paths.json security/SHA256SUMS.txt
           if git diff --cached --quiet; then
             echo "No binaries changed."
             exit 0
