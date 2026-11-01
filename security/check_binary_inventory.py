@@ -41,7 +41,7 @@ def calculate():
         with file.open("rb") as stream:
             for chunk in iter(lambda: stream.read(1024 * 1024), b""):
                 h.update(chunk)
-        lines.append(f"{h.hexdigest()}  binaries/{relative}\\n")
+        lines.append(f"{h.hexdigest()}  binaries/{relative}\n")
     return "".join(lines)
 
 
